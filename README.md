@@ -80,20 +80,36 @@ To deploy the backend with the frontend, set the Vercel project root back to
 the repository root. The root `vercel.json` routes both Vercel Services on one
 domain. Vercel Services are currently in Beta.
 
-Before deploying the backend, create a persistent PostgreSQL database (for
-example, with Neon); SQLite files on Vercel are not persistent. Set these
-environment variables for every deployment environment:
+Set the Vercel project's **Root Directory** to the repository root so Vercel
+loads `vercel.json` and builds the `frontend/` and `backend/` services
+separately. The frontend and API share one origin, so the frontend can call
+`/api` directly. If you choose a separate API origin, set `VITE_API_URL` to
+that origin and add the frontend origin to `CORS_ORIGINS`.
+
+SQLite files on Vercel are not persistent. Set these environment variables in
+Vercel for the production environment:
 
 - `DATABASE_URL`: the provider's PostgreSQL connection URL (`postgresql://`).
 - `JWT_SECRET`: a unique random secret, generated locally with
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
 - `MQTT_ENABLED`: `false` unless a separately reachable MQTT broker is
   configured.
+- `VITE_API_URL`: the production app origin when using a separate API; omit it
+  for same-origin Services routing.
+- `CORS_ORIGINS`: comma-separated allowed frontend origins when using a
+  separate API origin.
 
 The API rejects Vercel startup if `DATABASE_URL` is SQLite or `JWT_SECRET` is
 a known placeholder. Once deployed, `/health` checks the API and `/docs` opens
 Swagger UI. `VITE_API_URL` is only needed when the frontend calls an API on a
 different origin; configure that API's `CORS_ORIGINS` accordingly.
+
+This workspace is linked to its Neon production branch. Run `neon deploy` to
+refresh the local `.env` values from Neon; the backend reads `DATABASE_URL`
+through SQLAlchemy and `psycopg2`. `.env` is local-only and must not be
+committed. Neon CLI does not add these values to Vercel automatically, so set
+`DATABASE_URL` and a unique `JWT_SECRET` in the Vercel project's environment
+settings before deploying the full stack.
 
 ## Copilot
 

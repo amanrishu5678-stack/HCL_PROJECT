@@ -12,3 +12,4 @@ frontend/dist/
 !.env.example
 data/*.db
 .DS_Store
+.neon
