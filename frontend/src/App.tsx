@@ -93,9 +93,10 @@ function PulseMeter({ score }: { score: number }) {
 }
 
 function Donut({ values }: { values: {name:string,value:number}[] }) {
-  const total = values.reduce((a,b)=>a+b.value,0) || 1;
-  const gradient = values.reduce((acc,v,i)=> { const start = acc.total; const end = start + (v.value/total)*100; acc.total = end; acc.parts.push(`${COLORS[i]} ${start}% ${end}%`); return acc; }, {total:0,parts:[] as string[]}).parts.join(",");
-  return <div className="liquid-donut"><div className="donut-ring" style={{background:`conic-gradient(${gradient})`}}/><div className="donut-hole"><strong>{total}</strong><span>ASSETS</span><i/></div><div className="donut-orbit o1"/><div className="donut-orbit o2"/></div>;
+  const total = values.reduce((a,b)=>a+b.value,0);
+  const denominator = total || 1;
+  const gradient = values.reduce((acc,v,i)=> { const start = acc.total; const end = start + (v.value/denominator)*100; acc.total = end; acc.parts.push(`${COLORS[i]} ${start}% ${end}%`); return acc; }, {total:0,parts:[] as string[]}).parts.join(",");
+  return <div className="liquid-donut"><div className="donut-ring" style={{background:gradient?`conic-gradient(${gradient})`:"rgba(122,170,204,.14)"}}/><div className="donut-hole"><strong>{total}</strong><span>ASSETS</span><i/></div><div className="donut-orbit o1"/><div className="donut-orbit o2"/></div>;
 }
 
 function NeuralCore({ health, anomaly }: { health:number; anomaly:boolean }) {
@@ -119,6 +120,7 @@ function Dashboard() {
   const overview = usePolling(getOverview, {} as any, 3500) as any;
   const eq = usePolling(getEquipment, [] as Eq[], 3500) as Eq[];
   const status = usePolling(getStatus, {} as any, 6000) as any;
+  const apiOnline = apiConfigured && status.backend === "ONLINE";
   const alerts = usePolling(() => getAlerts<AlertItem>(), [] as AlertItem[], 3500);
   const [focus, setFocus] = useState("CNC-042");
   const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
@@ -148,7 +150,7 @@ function Dashboard() {
 
     <section className="layout-v6 top-zone">
       <div className="glass-panel panel-pulse">
-        <div className="panel-title"><div><span>BIOMIMETIC SIGNAL</span><h2>HEALTH PULSE</h2></div><div className="panel-live"><i/> STREAMING</div></div>
+        <div className="panel-title"><div><span>BIOMIMETIC SIGNAL</span><h2>HEALTH PULSE</h2></div><div className="panel-live"><i/> {apiOnline?"STREAMING":"WAITING FOR API"}</div></div>
         <PulseMeter score={active?.health_score || overview.average_health || 0}/>
         <div className="pulse-stats"><div><span>TEMPERATURE</span><b>{last?last.temperature.toFixed(1):"—"}<small>°C</small></b><MiniBar value={last?Math.min(100,last.temperature):0} color="#55f6c7"/></div><div><span>VIBRATION</span><b>{last?last.vibration.toFixed(1):"—"}<small>mm/s</small></b><MiniBar value={last?Math.min(100,last.vibration*8):0} color="#ff8d5e"/></div><div><span>CURRENT</span><b>{last?last.current.toFixed(1):"—"}<small>A</small></b><MiniBar value={last?Math.min(100,last.current*5):0} color="#6cdcff"/></div><div><span>RPM</span><b>{last?Math.round(last.rpm):"—"}<small>rpm</small></b><MiniBar value={last?Math.min(100,last.rpm/18):0} color="#a97bff"/></div></div>
       </div>
