@@ -63,30 +63,37 @@ python simulator\simulator.py --equipment CNC-042 --mode critical
 
 ## Deploy to Vercel
 
-The root `vercel.json` deploys the React frontend and FastAPI backend as Vercel
-Services on one domain. Vercel Services are currently in Beta. The frontend
-uses the local API in development and same-origin `/api` requests in production.
+### Frontend-only deployment
 
-1. Push this project to a Git provider and import it into Vercel with the
-   **repository root** as the project root (do not set `frontend/` or
-   `backend/` as the root directory).
-2. Create a persistent PostgreSQL database, for example with Neon. Do not use
-   SQLite on Vercel: function filesystems are not persistent. Add these
-   environment variables to the Vercel project for every environment you use:
-   - `DATABASE_URL`: the provider's PostgreSQL connection URL (use the
-     `postgresql://` format).
-   - `JWT_SECRET`: a unique random secret. Generate one locally with
-     `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-   - `MQTT_ENABLED`: `false` unless a separately reachable MQTT broker is
-     deliberately configured.
-3. Deploy. The dashboard should load at the deployment URL; `/health` checks
-   the API and `/docs` opens its Swagger UI.
+1. Import this repository into Vercel and set **Root Directory** to `frontend`.
+2. Keep the detected Vite build settings (`npm run build`, output directory
+   `dist`) and deploy. `frontend/vercel.json` enables client-side route refreshes.
 
-The API rejects Vercel startup when `DATABASE_URL` is still SQLite or the
-JWT secret is a known placeholder, instead of silently running with ephemeral
-data or a public default secret. `VITE_API_URL` is optional; set it only if the
-frontend should call an API hosted at a different origin, and configure that
-API's `CORS_ORIGINS` accordingly.
+This publishes the dashboard UI only. Equipment, telemetry, alerts, and other
+API-backed data will not load until the FastAPI backend is deployed and
+connected; the frontend uses same-origin `/api` requests unless `VITE_API_URL`
+is configured for a separately hosted API.
+
+### Full-stack deployment (requires a database)
+
+To deploy the backend with the frontend, set the Vercel project root back to
+the repository root. The root `vercel.json` routes both Vercel Services on one
+domain. Vercel Services are currently in Beta.
+
+Before deploying the backend, create a persistent PostgreSQL database (for
+example, with Neon); SQLite files on Vercel are not persistent. Set these
+environment variables for every deployment environment:
+
+- `DATABASE_URL`: the provider's PostgreSQL connection URL (`postgresql://`).
+- `JWT_SECRET`: a unique random secret, generated locally with
+  `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- `MQTT_ENABLED`: `false` unless a separately reachable MQTT broker is
+  configured.
+
+The API rejects Vercel startup if `DATABASE_URL` is SQLite or `JWT_SECRET` is
+a known placeholder. Once deployed, `/health` checks the API and `/docs` opens
+Swagger UI. `VITE_API_URL` is only needed when the frontend calls an API on a
+different origin; configure that API's `CORS_ORIGINS` accordingly.
 
 ## Copilot
 
